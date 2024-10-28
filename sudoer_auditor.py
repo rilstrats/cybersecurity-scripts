@@ -173,10 +173,11 @@ class SudoerAuditor:
     def remove_sudoer(self, sudoer: Sudoer):
         self.changed_sudoers_file = True
 
-        self.sudoers_file = self.sudoers_file.replace(str(sudoer) + "\n", "")
+        self.sudoers_file = self.sudoers_file.replace(str(sudoer), "")
 
     def remove_user_from_group(self, user: str, group: Sudoer):
-        process = run(["sudo", "gpasswd", "-d", user, group.name])
+        process = run(["sudo", "gpasswd", "-d", user, group.name],
+                      stdout=DEVNULL, stderr=DEVNULL)
 
         if process.returncode == 0:
             print(f"Successfully removed '{user}' from sudoer group '{group.name}'")
@@ -193,7 +194,8 @@ class SudoerAuditor:
         with open(tmp_sudoers_path, "w") as outfile:
             outfile.write(self.sudoers_file)
 
-        process = run(["visudo", "-c", "-f", tmp_sudoers_path], stdout=DEVNULL)
+        process = run(["visudo", "-c", "-f", tmp_sudoers_path],
+                      stdout=DEVNULL, stderr=DEVNULL)
 
         if process.returncode != 0:
             print("Failed 'visudo' checks, please make changes manually")
