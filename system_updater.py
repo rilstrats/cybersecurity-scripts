@@ -12,9 +12,10 @@ class SystemUpdater:
     distro: Distro = Distro.OTHER
 
 
-    def __init__(self):
+    def run(self):
         self.get_os_release()
         self.determine_distro()
+        self.update()
 
     def get_os_release(self):
         with open("/etc/os-release") as infile:
