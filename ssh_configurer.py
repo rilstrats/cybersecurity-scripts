@@ -6,12 +6,12 @@ from datetime import datetime
 
 class SSHConfigurer:
 
-    sshd_config_file: list[str] = []
-    sshd_config_changed: bool = False
+    sshd_config_file = []
+    sshd_config_changed = False
 
-    sshd_name: str = ""
-    sshd_active: bool = False
-    sshd_enabled: bool = False
+    sshd_name = ""
+    sshd_active = False
+    sshd_enabled = False
 
     def run(self):
         self.backup_sshd_config()
@@ -32,10 +32,11 @@ class SSHConfigurer:
 
     def backup_sshd_config(self):
         now = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-        run(["sudo", "cp", "/etc/ssh/sshd_config", f"/etc/ssh/sshd_config.{now}.bkp"],
+        run(["sudo", "cp", "/etc/ssh/sshd_config",
+             "/etc/ssh/sshd_config.{}.bkp".format(now)],
             capture_output=True, text=True)
 
-        print(f"Backup created at /etc/ssh/sshd_config.{now}.bkp")
+        print("Backup created at /etc/ssh/sshd_config.{}.bkp".format(now))
 
 
     def read_sshd_config(self):
@@ -166,7 +167,7 @@ class SSHConfigurer:
             print("Please manually set up SSH keys later")
             return
 
-        options: list[tuple[str, str]] = [
+        options = [
             ("PubkeyAuthentication", "yes"),
             ("PasswordAuthentication", "no"),
             ("KbdInteractiveAuthentication", "no")
@@ -176,7 +177,7 @@ class SSHConfigurer:
             self.configure_line(option[0], option[1])
 
     def configure_default_hardening(self):
-        options: list[tuple[str, str]] = [
+        options = [
             ("PermitRootLogin", "no"),
             ("MaxAuthTries", "3"),
             ("AllowAgentForwarding", "no"),
@@ -191,7 +192,7 @@ class SSHConfigurer:
     def configure_line(self, keyword: str, argument: str):
         self.sshd_config_changed = True
 
-        replaced: bool = False
+        replaced = False
         for i in range(len(self.sshd_config_file)):
             if keyword + " " in self.sshd_config_file[i]:
                 self.sshd_config_file[i] = keyword + " " + argument + "\n"

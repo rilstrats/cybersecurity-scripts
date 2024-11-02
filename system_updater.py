@@ -1,5 +1,6 @@
 from enum import Enum
 from subprocess import run
+from typing import Dict
 
 class Distro(Enum):
     OTHER = 0
@@ -8,8 +9,8 @@ class Distro(Enum):
 
 class SystemUpdater:
 
-    os_release: dict[str, str] = {}
-    distro: Distro = Distro.OTHER
+    os_release = {}
+    distro = Distro.OTHER
 
 
     def run(self):
@@ -33,7 +34,7 @@ class SystemUpdater:
             self.os_release[key] = value
 
     def determine_distro(self):
-        os_ids: list[str | None] = [
+        os_ids = [
             self.os_release.get("ID"),
             self.os_release.get("ID_LIKE")
         ]

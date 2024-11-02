@@ -6,6 +6,7 @@ from datetime import datetime
 from os import remove
 
 class SudoerType(Enum):
+    UNDEFINED = -1
     USER = 0
     GROUP = 1
 
@@ -16,24 +17,24 @@ class SudoerType(Enum):
             return "group"
 
 class Sudoer:
-    name: str
-    type: SudoerType
-    privs: str
+    name = ""
+    type = SudoerType.UNDEFINED
+    privs = ""
 
     def __str__(self) -> str:
         return_string = ""
         if self.type == SudoerType.GROUP:
             return_string += "%"
 
-        return return_string + f"{self.name}\t{self.privs}"
+        return return_string + "{}\t{}".format(self.name, self.privs)
 
 class SudoerAuditor:
 
-    sudoers_file: str = ""
-    sudoers: list[Sudoer] = []
-    include_dirs: list[str] = []
-    recs: list[str] = []
-    changed_sudoers_file: bool = False
+    sudoers_file = ""
+    sudoers = []
+    include_dirs = []
+    recs = []
+    changed_sudoers_file = False
 
     def run(self):
         self.backup_sudoers()
@@ -46,10 +47,10 @@ class SudoerAuditor:
 
     def backup_sudoers(self):
         now = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-        run(["sudo", "cp", "/etc/sudoers", f"/etc/sudoers.{now}.bkp"],
+        run(["sudo", "cp", "/etc/sudoers", "/etc/sudoers.{}.bkp".format(now)],
             capture_output=True, text=True)
 
-        print(f"Backup created at /etc/sudoers.{now}.bkp")
+        print("Backup created at /etc/sudoers.{}.bkp".format(now))
 
 
     def read_sudoers(self):
@@ -91,12 +92,12 @@ class SudoerAuditor:
     def audit_sudoer(self, sudoer: Sudoer):
         default = False
         if sudoer.name in ["root", "sudo", "wheel", "admin"]:
-            print(f"Please note that '{sudoer.name}'",
-                  f"is a default {sudoer.type} in some distros!")
+            print("Please note that '{}'".format(sudoer.name),
+                  "is a default {} in some distros!".format(sudoer.type))
             default = True
 
-        prompt = f"Should '{sudoer.name}' {sudoer.type} "
-        prompt += f"have '{sudoer.privs}' privileges?"
+        prompt = "Should '{}' {} ".format(sudoer.name, sudoer.type)
+        prompt += "have '{}' privileges?".format(sudoer.privs)
         privileged = get_yes_or_no(prompt, True)
 
         if privileged:
@@ -105,59 +106,59 @@ class SudoerAuditor:
             return
 
         elif not privileged and default:
-            print(f"Since '{sudoer.name}' is a default {sudoer.type}",
+            print("Since '{}' is a default {}".format(sudoer.name, sudoer.type),
                   "please manually correct its permissions")
-            self.recs.append(f"Correct sudoer privileges: {sudoer}")
+            self.recs.append("Correct sudoer privileges: {}".format(sudoer))
             return
 
         # else
-        prompt = f"Would you like to remove sudo privileges "
-        prompt += f"from the '{sudoer.name}' {sudoer.type}?"
+        prompt = "Would you like to remove sudo privileges "
+        prompt += "from the '{}' {}?".format(sudoer.name, sudoer.type)
         remove = get_yes_or_no(prompt, False)
 
         if remove:
             self.remove_sudoer(sudoer)
 
         else:
-            print(f"Please manually correct {sudoer.name}'s permissions")
-            self.recs.append(f"Correct sudoer privileges: {sudoer}")
+            print("Please manually correct {}'s permissions".format(sudoer.name))
+            self.recs.append("Correct sudoer privileges: {}".format(sudoer))
 
     def audit_group_users(self, group: Sudoer):
         process = run(["getent", "group", group.name], capture_output=True, text=True)
         group_line = process.stdout.strip()
 
         if group_line == "":
-            print(f"Group '{group.name}' wasn't found")
+            print("Group '{}' wasn't found".format(group.name))
             return
 
-        users: list[str] = group_line.split(":")[3].split(",")
+        users = group_line.split(":")[3].split(",")
 
         for user in users:
             self.audit_group_user(group, user)
 
 
     def audit_group_user(self, group: Sudoer, user: str):
-        current_user: bool = False
+        current_user = False
         if user == getuser():
             current_user = True
-            print(f"Please note that you are currently user '{user}'!")
-        prompt = f"Should '{user}' be part of sudoer group '{group.name}'?"
+            print("Please note that you are currently user '{}'!".format(user))
+        prompt = "Should '{user}' be part of sudoer group '{}'?".format(group.name)
         part_group = get_yes_or_no(prompt, True)
 
         if part_group:
             return
 
         if not part_group and current_user:
-            print(f"Please manually remove self ({user})",
-                  f"from sudoer group '{group.name}'")
-            rec = f"DANGEROUS! Remove self ({user}) "
-            rec += f"from sudoer group '{group.name}'"
+            print("Please manually remove self ({})".format(user),
+                  "from sudoer group '{}'".format(group.name))
+            rec = "DANGEROUS! Remove self ({}) ".format(user)
+            rec += "from sudoer group '{}'".format(group.name)
             self.recs.append(rec)
             return
 
 
-        prompt = f"Would you like to remove '{user}' "
-        prompt += f"from sudoer group '{group.name}'?"
+        prompt = "Would you like to remove '{}' ".format(user)
+        prompt += "from sudoer group '{}'?".format(group.name)
 
         remove = get_yes_or_no(prompt, False)
 
@@ -165,9 +166,10 @@ class SudoerAuditor:
             self.remove_user_from_group(user, group)
 
         else:
-            print(f"Please manually remove '{user}'",
-                  f"from sudoer group '{group.name}'")
-            self.recs.append(f"Remove '{user}' from sudoer group '{group.name}'")
+            print("Please manually remove '{}'",
+                  "from sudoer group '{}'")
+            rec = "Remove '{}' from sudoer group '{}'".format(user, group.name)
+            self.recs.append(rec)
 
 
     def remove_sudoer(self, sudoer: Sudoer):
@@ -180,13 +182,18 @@ class SudoerAuditor:
                       stdout=DEVNULL, stderr=DEVNULL)
 
         if process.returncode == 0:
-            print(f"Successfully removed '{user}' from sudoer group '{group.name}'")
+            s = "Successfully removed '{}' from sudoer group '{}'".format(
+                user, group.name)
+            print(s)
 
         else:
-            print(f"Failed to remove '{user}' from sudoer group '{group.name}'")
-            print(f"Please manually remove '{user}'",
-                  f"from sudoer group '{group.name}'")
-            self.recs.append(f"Remove {user} from sudoer group {group.name}")
+            print("Failed to remove '{}' from sudoer group '{}'".format(
+                user, group.name
+            ))
+            print("Please manually remove '{}'".format(user),
+                  "from sudoer group '{}'".format(group.name))
+            self.recs.append("Remove {} from sudoer group {}".format(
+                user, group.name))
 
     def write_sudoers_file(self):
         tmp_sudoers_path = "/tmp/sudoers"
@@ -205,7 +212,7 @@ class SudoerAuditor:
         process = run(["sudo", "cp", tmp_sudoers_path, sudoers_path])
 
         if process.returncode != 0:
-            print(f"Failed to write changes to '{sudoers_path}',",
+            print("Failed to write changes to '{}',".format(sudoers_path),
                   "please make changes manually")
             remove(tmp_sudoers_path)
             return
